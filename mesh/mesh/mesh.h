@@ -60,4 +60,9 @@ public: vertex getN(int num){
 		out.z=out.z/length;
 		*/return out;
 	}
+public: void kill(void){
+			free(V);
+			free(F);
+
+		}
 };

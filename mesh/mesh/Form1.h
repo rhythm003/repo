@@ -148,7 +148,8 @@ namespace viewer {
 			wglMakeCurrent(m_hDC, m_hRC);
 			glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
-			
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_BACK);
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
@@ -222,23 +223,30 @@ namespace viewer {
 			// 
 			// showPan
 			// 
+			this->showPan->AutoSize = true;
 			this->showPan->Location = System::Drawing::Point(12, 10);
 			this->showPan->Name = L"showPan";
-			this->showPan->Size = System::Drawing::Size(365, 365);
+			this->showPan->Size = System::Drawing::Size(360, 360);
 			this->showPan->TabIndex = 0;
+			this->showPan->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseWheel);
+			this->showPan->PreviewKeyDown += gcnew System::Windows::Forms::PreviewKeyDownEventHandler(this, &Form1::showPan_PreviewKeyDown);
 			this->showPan->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseMove);
+			this->showPan->Click += gcnew System::EventHandler(this, &Form1::showPan_Click);
 			this->showPan->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseDown);
 			this->showPan->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseUp);
 			this->showPan->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::showPan_KeyDown);
 			// 
 			// load_btn
 			// 
+			this->load_btn->AutoSize = true;
+			this->load_btn->AutoSizeMode = System::Windows::Forms::AutoSizeMode::GrowAndShrink;
 			this->load_btn->Location = System::Drawing::Point(12, 378);
 			this->load_btn->Name = L"load_btn";
-			this->load_btn->Size = System::Drawing::Size(75, 23);
+			this->load_btn->Size = System::Drawing::Size(38, 22);
 			this->load_btn->TabIndex = 1;
 			this->load_btn->Text = L"open";
 			this->load_btn->UseVisualStyleBackColor = true;
+			this->load_btn->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseWheel);
 			this->load_btn->Click += gcnew System::EventHandler(this, &Form1::load_btn_Click);
 			// 
 			// test_lb
@@ -251,9 +259,11 @@ namespace viewer {
 			// 
 			// button1
 			// 
+			this->button1->AutoSize = true;
+			this->button1->AutoSizeMode = System::Windows::Forms::AutoSizeMode::GrowAndShrink;
 			this->button1->Location = System::Drawing::Point(12, 407);
 			this->button1->Name = L"button1";
-			this->button1->Size = System::Drawing::Size(75, 23);
+			this->button1->Size = System::Drawing::Size(51, 22);
 			this->button1->TabIndex = 3;
 			this->button1->Text = L"button1";
 			this->button1->UseVisualStyleBackColor = true;
@@ -263,6 +273,8 @@ namespace viewer {
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
+			this->AutoScroll = true;
+			this->AutoSize = true;
 			this->ClientSize = System::Drawing::Size(394, 440);
 			this->Controls->Add(this->button1);
 			this->Controls->Add(this->test_lb);
@@ -270,6 +282,8 @@ namespace viewer {
 			this->Controls->Add(this->showPan);
 			this->Name = L"Form1";
 			this->Text = L"Form1";
+			this->FormClosed += gcnew System::Windows::Forms::FormClosedEventHandler(this, &Form1::Form1_FormClosed);
+			this->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::Form1_KeyDown);
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -318,9 +332,9 @@ private: System::Void showPan_MouseMove(System::Object^  sender, System::Windows
 				Eyey-=(double)((int)e->Y-Mousey)/100;
 				Mousey=(int)e->Y;
 			 }
-			 char out[255];
-			 sprintf_s(out,255,"%lf %lf",(double)Eyex,(double)Eyey);
-			 this->test_lb->Text=gcnew String(out);
+			 //char out[255];
+			 //sprintf_s(out,255,"%lf %lf",(double)Eyex,(double)Eyey);
+			 //this->test_lb->Text=gcnew String(out);
 			 draw_mesh(Model);
 			 }
 		 }
@@ -330,7 +344,19 @@ private: System::Void showPan_MouseUp(System::Object^  sender, System::Windows::
 private: System::Void showPan_KeyDown(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
 			 this->test_lb->Text=System::Convert::ToString(e->KeyValue);
 		 }
+private: System::Void showPan_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
+			 this->test_lb->Text=System::Convert::ToString(e->Delta);
+		 }
 
+private: System::Void Form1_FormClosed(System::Object^  sender, System::Windows::Forms::FormClosedEventArgs^  e) {
+			 Model.kill();
+		 }
+private: System::Void Form1_KeyDown(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
+		 }
+
+private: System::Void showPan_Click(System::Object^  sender, System::EventArgs^  e) {
+			 this->showPan->Focus();
+		 }
 };
 }
 
