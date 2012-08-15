@@ -29,8 +29,8 @@ namespace viewer {
 	/// </summary>
 	bool click=false;
 	GLdouble Eyex=0,Eyey=0,Eyez=1;
-	//GLdouble ViewLeft=-100,ViewRight=100,ViewBottom=-100,ViewTop=100,ViewNear=100,ViewFar=-100;
-	GLdouble ViewLeft=-2,ViewRight=2,ViewBottom=-2,ViewTop=2,ViewNear=2,ViewFar=-2;
+	GLdouble ViewLeft=-100,ViewRight=100,ViewBottom=-100,ViewTop=100,ViewNear=-1000,ViewFar=1000;
+	//GLdouble ViewLeft=-2,ViewRight=2,ViewBottom=-2,ViewTop=2,ViewNear=-20,ViewFar=20;
 	double Mousex,Mousey;
 	mesh Model;
 	public ref class Form1 : public System::Windows::Forms::Form
@@ -75,17 +75,31 @@ namespace viewer {
 			glClearColor(0.0f,0.0f,0.0f,0.0f);
 			glLoadIdentity();
 		
-			GLfloat light_pos[]={-2,-2,2,0};
+			GLfloat light_pos[]={-200,-200,200,0};
 			GLfloat light_diffuse[]={0.8f,0.8f,0.8f,1.0f};
-			//GLfloat light_specular[]={1,1,1,1};
+			GLfloat light_specular[]={1,1,1,1};
 			GLfloat light_ambient[]={0.3f,0.3f,0.3f,1.0f};
+			GLfloat light1_pos[]={200,200,-200,0};
+			GLfloat light1_diffuse[]={0.0f,0.8f,0.0f,1.0f};
+			GLfloat light2_pos[]={200,-200,200,0};
+			GLfloat light2_diffuse[]={0.0f,0.0f,0.8f,1.0f};
 			glLightfv(GL_LIGHT0,GL_POSITION,light_pos);
 			glLightfv(GL_LIGHT0,GL_DIFFUSE,light_diffuse);
-			//glLightfv(GL_LIGHT0,GL_SPECULAR,light_specular);
+			glLightfv(GL_LIGHT0,GL_SPECULAR,light_specular);
 			glLightfv(GL_LIGHT0,GL_AMBIENT,light_ambient);
+			glLightfv(GL_LIGHT1,GL_POSITION,light1_pos);
+			glLightfv(GL_LIGHT1,GL_DIFFUSE,light1_diffuse);
+			glLightfv(GL_LIGHT1,GL_SPECULAR,light1_diffuse);
+			glLightfv(GL_LIGHT1,GL_AMBIENT,light_ambient);
+			glLightfv(GL_LIGHT2,GL_POSITION,light2_pos);
+			glLightfv(GL_LIGHT2,GL_DIFFUSE,light2_diffuse);
+			glLightfv(GL_LIGHT2,GL_SPECULAR,light2_diffuse);
+			glLightfv(GL_LIGHT2,GL_AMBIENT,light_ambient);
 			
 			glEnable(GL_LIGHTING);
 			glEnable(GL_LIGHT0);
+			glEnable(GL_LIGHT1);
+			glEnable(GL_LIGHT2);
 			glEnable(GL_DEPTH_TEST);
 			
 			glDepthFunc(GL_LEQUAL);
@@ -129,11 +143,15 @@ namespace viewer {
 			vcount=0;
 			fcount=0;
 			while(fgets(buff,255,fp)!= NULL){
-				if(sscanf_s(buff,"v %f %f %f",&t1,&t2,&t3)){
+				if(sscanf_s(buff,"v %f %f %f\n",&t1,&t2,&t3)){
 					model->setV(vcount,t1,t2,t3);
 					vcount++;
 				}
-				if(sscanf_s(buff,"f %f %f %f",&t1,&t2,&t3)){
+				//if(sscanf_s(buff,"f %f/%f %f/%f %f/%f\n",&t1,&t1,&t2,&t2,&t3,&t3)){
+					//model->setF(fcount,(int)t1,(int)t2,(int)t3);
+					//fcount++;
+				//}else 
+				if(sscanf_s(buff,"f %f %f %f\n",&t1,&t2,&t3)){
 					model->setF(fcount,(int)t1,(int)t2,(int)t3);
 					fcount++;
 				}
@@ -141,6 +159,8 @@ namespace viewer {
 			fclose(fp);
 			//sprintf_s(out,255,"%f %f %f",model->getV(0).x,model->getV(0).y,model->getV(0).z);
 			//this->test_lb->Text=gcnew String(out);
+			model->setVN();
+			model->setCenter();
 			
 			
 		}
@@ -148,30 +168,36 @@ namespace viewer {
 			wglMakeCurrent(m_hDC, m_hRC);
 			glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
-			glEnable(GL_CULL_FACE);
-			glCullFace(GL_BACK);
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
-			glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
-			gluLookAt(Eyex,Eyey,Eyez,0,0,0,0,1,0);
-			//gluPerspective(45,1,10,200);
+			//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
+			gluPerspective(45,1,0.1,ViewFar);
+			
+			
 			char out[255];
 			sprintf_s(out,255,"%lf %lf %lf",(double)Eyex,(double)Eyey,(double)Eyez);
 			this->test_lb->Text=gcnew String(out);
-			//glMatrixMode(GL_MODELVIEW);
-			//glLoadIdentity();
-			//gluLookAt(0,1,0,0,0,0,0,0,-1);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			
+			//gluLookAt(Eyex,Eyey,Eyez,model.getCenter().x,model.getCenter().y,model.getCenter().z,0,1,0);
+			gluLookAt(Eyex,Eyey,Eyez,0,0,0,0,1,0);
+			glTranslatef(-model.getCenter().x,-model.getCenter().y,-model.getCenter().z);
+			sprintf_s(out,255,"%lf %lf %lf",model.getCenter().x,model.getCenter().y,model.getCenter().z);
+			this->test_lb2->Text=gcnew String(out);
 			glBegin(GL_TRIANGLES);
 			glColor3f(1.0, 1.0, 1.0);
 			for(int i=0;i<model.getFnum();i++){
-				glNormal3f(model.getN(i).x,model.getN(i).y,model.getN(i).z);
+				//glNormal3f(model.getN(i).x,model.getN(i).y,model.getN(i).z);
+				glNormal3f(model.getVN(model.getF(i).f1-1).x,model.getVN(model.getF(i).f1-1).y,model.getVN(model.getF(i).f1-1).z);
 				glVertex3f(model.getV(model.getF(i).f1-1).x,model.getV(model.getF(i).f1-1).y,model.getV(model.getF(i).f1-1).z);
+				glNormal3f(model.getVN(model.getF(i).f2-1).x,model.getVN(model.getF(i).f2-1).y,model.getVN(model.getF(i).f2-1).z);
 				glVertex3f(model.getV(model.getF(i).f2-1).x,model.getV(model.getF(i).f2-1).y,model.getV(model.getF(i).f2-1).z);
+				glNormal3f(model.getVN(model.getF(i).f3-1).x,model.getVN(model.getF(i).f3-1).y,model.getVN(model.getF(i).f3-1).z);
 				glVertex3f(model.getV(model.getF(i).f3-1).x,model.getV(model.getF(i).f3-1).y,model.getV(model.getF(i).f3-1).z);
 			}
 			
 			glEnd();
-			
 			glFlush();
 			SwapBuffers( m_hDC );  
 			
@@ -205,6 +231,7 @@ namespace viewer {
 	private: System::Windows::Forms::Button^  load_btn;
 	private: System::Windows::Forms::Label^  test_lb;
 	private: System::Windows::Forms::Button^  button1;
+private: System::Windows::Forms::Label^  test_lb2;
 		 static HGLRC m_hRC;
 	
 
@@ -219,6 +246,7 @@ namespace viewer {
 			this->load_btn = (gcnew System::Windows::Forms::Button());
 			this->test_lb = (gcnew System::Windows::Forms::Label());
 			this->button1 = (gcnew System::Windows::Forms::Button());
+			this->test_lb2 = (gcnew System::Windows::Forms::Label());
 			this->SuspendLayout();
 			// 
 			// showPan
@@ -229,7 +257,6 @@ namespace viewer {
 			this->showPan->Size = System::Drawing::Size(360, 360);
 			this->showPan->TabIndex = 0;
 			this->showPan->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseWheel);
-			this->showPan->PreviewKeyDown += gcnew System::Windows::Forms::PreviewKeyDownEventHandler(this, &Form1::showPan_PreviewKeyDown);
 			this->showPan->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseMove);
 			this->showPan->Click += gcnew System::EventHandler(this, &Form1::showPan_Click);
 			this->showPan->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseDown);
@@ -269,6 +296,14 @@ namespace viewer {
 			this->button1->UseVisualStyleBackColor = true;
 			this->button1->Click += gcnew System::EventHandler(this, &Form1::button1_Click);
 			// 
+			// test_lb2
+			// 
+			this->test_lb2->AutoSize = true;
+			this->test_lb2->Location = System::Drawing::Point(103, 412);
+			this->test_lb2->Name = L"test_lb2";
+			this->test_lb2->Size = System::Drawing::Size(0, 12);
+			this->test_lb2->TabIndex = 4;
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
@@ -276,6 +311,7 @@ namespace viewer {
 			this->AutoScroll = true;
 			this->AutoSize = true;
 			this->ClientSize = System::Drawing::Size(394, 440);
+			this->Controls->Add(this->test_lb2);
 			this->Controls->Add(this->button1);
 			this->Controls->Add(this->test_lb);
 			this->Controls->Add(this->load_btn);
@@ -326,10 +362,10 @@ private: System::Void showPan_MouseMove(System::Object^  sender, System::Windows
 				Mousex=(int)e->X;
 			 }
 			 if((int)e->Y-Mousey>0){
-				Eyey-=(double)((int)e->Y-Mousey)/100;
+				Eyey+=(double)((int)e->Y-Mousey)/100;
 				Mousey=(int)e->Y;
 			 }else{
-				Eyey-=(double)((int)e->Y-Mousey)/100;
+				Eyey+=(double)((int)e->Y-Mousey)/100;
 				Mousey=(int)e->Y;
 			 }
 			 //char out[255];
@@ -345,7 +381,12 @@ private: System::Void showPan_KeyDown(System::Object^  sender, System::Windows::
 			 this->test_lb->Text=System::Convert::ToString(e->KeyValue);
 		 }
 private: System::Void showPan_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
-			 this->test_lb->Text=System::Convert::ToString(e->Delta);
+			 //this->test_lb->Text=System::Convert::ToString(e->Delta);
+			 if(e->Delta>0)
+				 Eyez-=(ViewFar-ViewNear)/1500;
+			 else
+				 Eyez+=(ViewFar-ViewNear)/1500;
+			 draw_mesh(Model);
 		 }
 
 private: System::Void Form1_FormClosed(System::Object^  sender, System::Windows::Forms::FormClosedEventArgs^  e) {
