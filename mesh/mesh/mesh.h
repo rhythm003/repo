@@ -72,7 +72,7 @@ public: void setVN(void){
 		VN=(vertex*)malloc(sizeof(vertex)*vnum);
 		float length;
 		vertex out;
-		for(int j=0;j<vnum;j++){
+		/*for(int j=0;j<vnum;j++){
 			out.x=0;out.y=0;out.z=0;
 			for(int i=0;i<fnum;i++){		
 				if(F[i].f1-1==j||F[i].f2-1==j||F[i].f3-1==j){
@@ -88,6 +88,28 @@ public: void setVN(void){
 			VN[j].x=out.x;
 			VN[j].y=out.y;
 			VN[j].z=out.z;
+		}*/
+		for(int i=0;i<vnum;i++){
+			VN[i].x=0;
+			VN[i].y=0;
+			VN[i].z=0;
+		}
+		for(int i=0;i<fnum;i++){
+			VN[getF(i).f1-1].x+=getN(i).x;
+			VN[getF(i).f1-1].y+=getN(i).y;
+			VN[getF(i).f1-1].z+=getN(i).z;
+			VN[getF(i).f2-1].x+=getN(i).x;
+			VN[getF(i).f2-1].y+=getN(i).y;
+			VN[getF(i).f2-1].z+=getN(i).z;
+			VN[getF(i).f3-1].x+=getN(i).x;
+			VN[getF(i).f3-1].y+=getN(i).y;
+			VN[getF(i).f3-1].z+=getN(i).z;
+		}
+		for(int i=0;i<vnum;i++){
+			length=sqrt(VN[i].x*VN[i].x+VN[i].y*VN[i].y+VN[i].z*VN[i].z);
+			VN[i].x=VN[i].x/length;
+			VN[i].y=VN[i].y/length;
+			VN[i].z=VN[i].z/length;
 		}
 		
 		}

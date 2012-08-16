@@ -120,7 +120,9 @@ namespace viewer {
 			String2char(filename,file);
 			
 			//this->test_lb->Text=gcnew String(file.c_str());
-			char buff[255],out[255];
+			char buff[255],out[255],o1[30],o2[30],o3[30];
+			string s1,s2,s3;
+			string sym ("/");
 			float t1,t2,t3;
 			FILE *fp;
 			fopen_s(&fp,&file[0],"r");
@@ -143,17 +145,27 @@ namespace viewer {
 			vcount=0;
 			fcount=0;
 			while(fgets(buff,255,fp)!= NULL){
-				if(sscanf_s(buff,"v %f %f %f\n",&t1,&t2,&t3)){
+				if(sscanf_s(buff,"v %f %f %f",&t1,&t2,&t3)){
 					model->setV(vcount,t1,t2,t3);
 					vcount++;
 				}
-				//if(sscanf_s(buff,"f %f/%f %f/%f %f/%f\n",&t1,&t1,&t2,&t2,&t3,&t3)){
-					//model->setF(fcount,(int)t1,(int)t2,(int)t3);
-					//fcount++;
-				//}else 
-				if(sscanf_s(buff,"f %f %f %f\n",&t1,&t2,&t3)){
-					model->setF(fcount,(int)t1,(int)t2,(int)t3);
-					fcount++;
+				if(sscanf_s(buff,"f %s %s %s",o1,30,o2,30,o3,30)){
+					s1= string (o1);
+					s2= string (o2);
+					s3= string (o3);
+					if(string::npos != s1.find(sym)){
+						sscanf_s(s1.c_str(),"%f/%f",&t1,&t1);
+						sscanf_s(s2.c_str(),"%f/%f",&t2,&t2);
+						sscanf_s(s3.c_str(),"%f/%f",&t3,&t3);
+						model->setF(fcount,(int)t1,(int)t2,(int)t3);
+						fcount++;
+					}else{
+						sscanf_s(buff,"f %f %f %f\n",&t1,&t2,&t3);
+						model->setF(fcount,(int)t1,(int)t2,(int)t3);
+						fcount++;
+					}
+					
+					//this->test_lb2->Text=gcnew String(s1.c_str());
 				}
 			}
 			fclose(fp);
@@ -355,17 +367,18 @@ private: System::Void showPan_MouseMove(System::Object^  sender, System::Windows
 			 if(click==true){
 				 this->test_lb->Text=System::Convert::ToString(e->Location::get());
 			 if((int)e->X-Mousex>0){
-				Eyex-=(double)((int)e->X-Mousex)/100;
+				//Eyex-=(double)((int)e->X-Mousex)/100;
+				Eyex-=sqrt(Eyex*Eyex+Eyey*Eyey+Eyez*Eyez)/50;
 				Mousex=(int)e->X;
-			 }else{
-				Eyex-=(double)((int)e->X-Mousex)/100;
+			 }else if((int)e->X-Mousex<0){
+				Eyex+=sqrt(Eyex*Eyex+Eyey*Eyey+Eyez*Eyez)/50;
 				Mousex=(int)e->X;
 			 }
 			 if((int)e->Y-Mousey>0){
-				Eyey+=(double)((int)e->Y-Mousey)/100;
+				Eyey+=sqrt(Eyex*Eyex+Eyey*Eyey+Eyez*Eyez)/50;
 				Mousey=(int)e->Y;
-			 }else{
-				Eyey+=(double)((int)e->Y-Mousey)/100;
+			 }else if((int)e->Y-Mousey<0){
+				Eyey-=sqrt(Eyex*Eyex+Eyey*Eyey+Eyez*Eyez)/50;
 				Mousey=(int)e->Y;
 			 }
 			 //char out[255];
@@ -383,9 +396,9 @@ private: System::Void showPan_KeyDown(System::Object^  sender, System::Windows::
 private: System::Void showPan_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 			 //this->test_lb->Text=System::Convert::ToString(e->Delta);
 			 if(e->Delta>0)
-				 Eyez-=(ViewFar-ViewNear)/1500;
+				 Eyez-=(ViewFar-ViewNear)/1000;
 			 else
-				 Eyez+=(ViewFar-ViewNear)/1500;
+				 Eyez+=(ViewFar-ViewNear)/1000;
 			 draw_mesh(Model);
 		 }
 
