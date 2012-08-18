@@ -4,6 +4,8 @@
 #include <gl/glu.h>		//add
 #include <iostream>
 #include "mesh.h"
+#include <cv.h>
+#include <highgui.h>
 
 namespace viewer {
 
@@ -351,10 +353,17 @@ private: System::Windows::Forms::Label^  test_lb2;
 		 }
 
 	private: System::Void button1_Click(System::Object^  sender, System::EventArgs^  e) {
-				Eyex-=0.1;
-				draw_mesh(Model);
-				//.set();
-				// this->test_lb->Text=System::Convert::ToString(a.leng());
+				void *WindowHandle1;
+				char filename[]="ma.jpg";
+				IplImage *Im1;
+				Im1=cvLoadImage(filename,1);
+				//cvNamedWindow("Show",0);
+				//cvResizeWindow("Show",360,429);
+				//WindowHandle1=cvGetWindowHandle("Show");
+				cvShowImage("Show",Im1);
+				cvWaitKey(0);
+				cvDestroyWindow("Show");
+				cvReleaseImage(&Im1);
 		 }
 private: System::Void showPan_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 				click=true;
