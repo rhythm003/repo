@@ -13,6 +13,9 @@ private: vertex* V;
 private: face* F;
 private: vertex* VN;
 private: vertex Center;
+private: vertex Translate;
+private: vertex Rotate;
+private: float rot_angle;
 
 public: void setVnum(int num){
 		vnum=num;
@@ -138,5 +141,51 @@ public: void setCenter(void){
 public: vertex getCenter(){
 			return Center;
 		}
-
+public: void initPose(void){
+			Translate.x=0;Translate.y=0;Translate.z=0;
+			Rotate.x=0;Rotate.y=1;Rotate.z=0;
+			rot_angle=0;
+		}
+public: void setTrans(float x,float y,float z){
+			Translate.x=x;
+			Translate.y=y;
+			Translate.z=z;
+		}
+public: void setRotate(float angle,float x,float y,float z){
+			rot_angle=angle;
+			Rotate.x=x;
+			Rotate.y=y;
+			Rotate.z=z;
+		}
+public: vertex getTrans(void){
+			vertex out;
+			out.x=Translate.x;
+			out.y=Translate.y;
+			out.z=Translate.z;
+			return out;
+		}
+public: vertex getRotate(void){
+			vertex out;
+			out.x=Rotate.x;
+			out.y=Rotate.y;
+			out.z=Rotate.z;
+			return out;
+		}
+public: float getRotate_angle(void){
+			return rot_angle;
+		}
+public: void copy(mesh in){
+			setVnum(in.getVnum());
+			setFnum(in.getFnum());
+			for(int i=0;i<vnum;i++){
+				setV(i,in.getV(i).x,in.getV(i).y,in.getV(i).z);
+			}
+			for(int i=0;i<fnum;i++){
+				setF(i,in.getF(i).f1,in.getF(i).f2,in.getF(i).f3);
+			}
+			setVN();
+			setCenter();
+			setTrans(in.getTrans().x,in.getTrans().y,in.getTrans().z);
+			setRotate(in.getRotate_angle(),in.getRotate().x,in.getRotate().y,in.getRotate().z);
+		}
 };

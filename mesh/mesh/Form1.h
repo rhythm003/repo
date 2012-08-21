@@ -6,6 +6,9 @@
 #include "mesh.h"
 #include <cv.h>
 #include <highgui.h>
+#include <math.h>
+
+#define PI 3.14159265
 
 namespace viewer {
 
@@ -29,12 +32,15 @@ namespace viewer {
 	///          將無法與這個表單關聯的當地語系化資源
 	///          正確互動。
 	/// </summary>
-	bool click=false;
-	GLdouble Eyex=0,Eyey=0,Eyez=1;
+	bool click=false,key=false;
+	GLdouble Eyex=0,Eyey=0,Eyez=100;
+	GLdouble Focusx=0,Focusy=0,Focusz=0,movex,movey,movez,rotx,roty,rotz;
 	GLdouble ViewLeft=-100,ViewRight=100,ViewBottom=-100,ViewTop=100,ViewNear=-1000,ViewFar=1000;
 	//GLdouble ViewLeft=-2,ViewRight=2,ViewBottom=-2,ViewTop=2,ViewNear=-20,ViewFar=20;
 	double Mousex,Mousey;
-	mesh Model;
+	double rot_angle=5,move_step=5;
+	mesh Model1,Model2;
+	bool Model1_load=false,Model2_load=false;
 	public ref class Form1 : public System::Windows::Forms::Form
 	{
 	public:
@@ -175,30 +181,14 @@ namespace viewer {
 			//this->test_lb->Text=gcnew String(out);
 			model->setVN();
 			model->setCenter();
-			
+			model->initPose();
 			
 		}
 		void draw_mesh(mesh model){
-			wglMakeCurrent(m_hDC, m_hRC);
-			glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
-			glMatrixMode(GL_PROJECTION);
+			//glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-			//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
-			gluPerspective(45,1,0.1,ViewFar);
-			
-			
-			char out[255];
-			sprintf_s(out,255,"%lf %lf %lf",(double)Eyex,(double)Eyey,(double)Eyez);
-			this->test_lb->Text=gcnew String(out);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-			
-			//gluLookAt(Eyex,Eyey,Eyez,model.getCenter().x,model.getCenter().y,model.getCenter().z,0,1,0);
-			gluLookAt(Eyex,Eyey,Eyez,0,0,0,0,1,0);
-			glTranslatef(-model.getCenter().x,-model.getCenter().y,-model.getCenter().z);
-			sprintf_s(out,255,"%lf %lf %lf",model.getCenter().x,model.getCenter().y,model.getCenter().z);
-			this->test_lb2->Text=gcnew String(out);
+			glTranslatef(model.getTrans().x,model.getTrans().y,model.getTrans().z);
+			glRotatef(model.getRotate_angle(),model.getRotate().x,model.getRotate().y,model.getRotate().z);
 			glBegin(GL_TRIANGLES);
 			glColor3f(1.0, 1.0, 1.0);
 			for(int i=0;i<model.getFnum();i++){
@@ -212,8 +202,8 @@ namespace viewer {
 			}
 			
 			glEnd();
-			glFlush();
-			SwapBuffers( m_hDC );  
+			//glFlush();
+			//SwapBuffers( m_hDC );  
 			
 		}
 	protected:
@@ -228,6 +218,7 @@ namespace viewer {
 			}
 		}
 	private: System::Windows::Forms::Panel^  showPan;
+private: System::ComponentModel::IContainer^  components;
 	protected: 
 
 	
@@ -235,7 +226,7 @@ namespace viewer {
 		/// <summary>
 		/// 設計工具所需的變數。
 		/// </summary>
-		System::ComponentModel::Container ^components;
+
 	private:
 		/// <summary>
 		/// 設計工具所需的變數。
@@ -245,7 +236,8 @@ namespace viewer {
 	private: System::Windows::Forms::Button^  load_btn;
 	private: System::Windows::Forms::Label^  test_lb;
 	private: System::Windows::Forms::Button^  button1;
-private: System::Windows::Forms::Label^  test_lb2;
+	private: System::Windows::Forms::Label^  test_lb2;
+	private: System::Windows::Forms::Timer^  timer1;
 		 static HGLRC m_hRC;
 	
 
@@ -256,23 +248,25 @@ private: System::Windows::Forms::Label^  test_lb2;
 		/// </summary>
 		void InitializeComponent(void)
 		{
+			this->components = (gcnew System::ComponentModel::Container());
 			this->showPan = (gcnew System::Windows::Forms::Panel());
 			this->load_btn = (gcnew System::Windows::Forms::Button());
 			this->test_lb = (gcnew System::Windows::Forms::Label());
 			this->button1 = (gcnew System::Windows::Forms::Button());
 			this->test_lb2 = (gcnew System::Windows::Forms::Label());
+			this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
 			this->SuspendLayout();
 			// 
 			// showPan
 			// 
-			this->showPan->AutoSize = true;
-			this->showPan->Location = System::Drawing::Point(12, 10);
+			this->showPan->Location = System::Drawing::Point(6, 12);
 			this->showPan->Name = L"showPan";
-			this->showPan->Size = System::Drawing::Size(360, 360);
+			this->showPan->Size = System::Drawing::Size(376, 358);
 			this->showPan->TabIndex = 0;
 			this->showPan->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseWheel);
 			this->showPan->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseMove);
 			this->showPan->Click += gcnew System::EventHandler(this, &Form1::showPan_Click);
+			this->showPan->KeyUp += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::showPan_KeyUp);
 			this->showPan->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseDown);
 			this->showPan->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &Form1::showPan_MouseUp);
 			this->showPan->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::showPan_KeyDown);
@@ -318,13 +312,18 @@ private: System::Windows::Forms::Label^  test_lb2;
 			this->test_lb2->Size = System::Drawing::Size(0, 12);
 			this->test_lb2->TabIndex = 4;
 			// 
+			// timer1
+			// 
+			this->timer1->Enabled = true;
+			this->timer1->Interval = 17;
+			this->timer1->Tick += gcnew System::EventHandler(this, &Form1::timer1_Tick);
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->AutoScroll = true;
-			this->AutoSize = true;
-			this->ClientSize = System::Drawing::Size(394, 440);
+			this->ClientSize = System::Drawing::Size(394, 477);
 			this->Controls->Add(this->test_lb2);
 			this->Controls->Add(this->button1);
 			this->Controls->Add(this->test_lb);
@@ -333,7 +332,7 @@ private: System::Windows::Forms::Label^  test_lb2;
 			this->Name = L"Form1";
 			this->Text = L"Form1";
 			this->FormClosed += gcnew System::Windows::Forms::FormClosedEventHandler(this, &Form1::Form1_FormClosed);
-			this->KeyDown += gcnew System::Windows::Forms::KeyEventHandler(this, &Form1::Form1_KeyDown);
+			this->Resize += gcnew System::EventHandler(this, &Form1::Form1_Resize);
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -344,16 +343,19 @@ private: System::Windows::Forms::Label^  test_lb2;
 	private: System::Void load_btn_Click(System::Object^  sender, System::EventArgs^  e) {
 			 OpenFileDialog^ openfiledialog1= gcnew OpenFileDialog;
 			 openfiledialog1->Filter="obj files (*.obj)|*.obj";
-			 Eyex=0;Eyey=0;Eyez=1;
 			 if(openfiledialog1->ShowDialog()==System::Windows::Forms::DialogResult::OK){
-				 read_obj(openfiledialog1->FileName,&Model);
-				 draw_mesh(Model);
+				 Eyex=0;Eyey=0;Eyez=100;
+				 read_obj(openfiledialog1->FileName,&Model1);
+				 Model1.setTrans(-Model1.getCenter().x,-Model1.getCenter().y,-Model1.getCenter().z);
+				 this->showPan->Focus();
+				 Model1_load=true;
+				 //draw_mesh(Model);
 			 }
 			 
 		 }
 
 	private: System::Void button1_Click(System::Object^  sender, System::EventArgs^  e) {
-				void *WindowHandle1;
+				/*//void *WindowHandle1;
 				char filename[]="ma.jpg";
 				IplImage *Im1;
 				Im1=cvLoadImage(filename,1);
@@ -363,14 +365,22 @@ private: System::Windows::Forms::Label^  test_lb2;
 				cvShowImage("Show",Im1);
 				cvWaitKey(0);
 				cvDestroyWindow("Show");
-				cvReleaseImage(&Im1);
+				cvReleaseImage(&Im1);*/
+				OpenFileDialog^ openfiledialog1= gcnew OpenFileDialog;
+				openfiledialog1->Filter="obj files (*.obj)|*.obj";
+				if(openfiledialog1->ShowDialog()==System::Windows::Forms::DialogResult::OK){
+					read_obj(openfiledialog1->FileName,&Model2);
+					//Model2.setTrans(-Model1.getCenter().x,-Model1.getCenter().y,-Model1.getCenter().z);
+					this->showPan->Focus();
+					Model2_load=true;
+				 //draw_mesh(Model);
+				}
+				
 		 }
 private: System::Void showPan_MouseDown(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 				click=true;
 				Mousex=(int)e->X;
 				Mousey=(int)e->Y;
-				 //this->test_lb->Text=System::Convert::ToString(e->Location.X);
-
 			 }
 private: System::Void showPan_MouseMove(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 			 if(click==true){
@@ -379,6 +389,7 @@ private: System::Void showPan_MouseMove(System::Object^  sender, System::Windows
 				//Eyex-=(double)((int)e->X-Mousex)/100;
 				Eyex-=sqrt(Eyex*Eyex+Eyey*Eyey+Eyez*Eyez)/50;
 				Mousex=(int)e->X;
+				
 			 }else if((int)e->X-Mousex<0){
 				Eyex+=sqrt(Eyex*Eyex+Eyey*Eyey+Eyez*Eyez)/50;
 				Mousex=(int)e->X;
@@ -393,14 +404,77 @@ private: System::Void showPan_MouseMove(System::Object^  sender, System::Windows
 			 //char out[255];
 			 //sprintf_s(out,255,"%lf %lf",(double)Eyex,(double)Eyey);
 			 //this->test_lb->Text=gcnew String(out);
-			 draw_mesh(Model);
+			 //draw_mesh(Model);
 			 }
 		 }
 private: System::Void showPan_MouseUp(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 			 click=false;
 		 }
 private: System::Void showPan_KeyDown(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
-			 this->test_lb->Text=System::Convert::ToString(e->KeyValue);
+			 //this->test_lb->Text=System::Convert::ToString(e->KeyCode);
+			 if(e->KeyCode==Keys::W || e->KeyCode==Keys::S){
+				 if(key==false){
+					double length;
+					movex=Focusx-Eyex;
+					movey=Focusy-Eyey;
+					movez=Focusz-Eyez;
+					length=pow(movex*movex+movey*movey+movez*movez,0.5);
+					movex=movex/length*move_step;
+					movey=movey/length*move_step;
+					movez=movez/length*move_step;
+				}
+				if(e->KeyCode==Keys::W){
+					Eyex+=movex;
+					Eyey+=movey;
+					Eyez+=movez;	
+				}else{
+					Eyex-=movex;
+					Eyey-=movey;
+					Eyez-=movez;	
+				}
+				key=true;
+			 }
+
+			 if(e->KeyCode==Keys::A || e->KeyCode==Keys::D){
+				 rotx=Eyex-Focusx;
+				 roty=Eyey-Focusy;
+				 rotz=Eyez-Focusz;
+				 if(e->KeyCode==Keys::D){
+					Eyex =rotx*cos(PI*rot_angle/180)+rotz*sin(PI*rot_angle/180)+Focusx;
+					Eyey =roty+Focusy;
+					Eyez =-rotx*sin(PI*rot_angle/180)+rotz*cos(PI*rot_angle/180)+Focusz;
+				 }else{
+					Eyex =rotx*cos(-PI*rot_angle/180)+rotz*sin(-PI*rot_angle/180)+Focusx;
+					Eyey =roty+Focusy;
+					Eyez =-rotx*sin(-PI*rot_angle/180)+rotz*cos(-PI*rot_angle/180)+Focusz;
+				 }
+				 key=true;
+			 }
+			 
+			 if(e->KeyCode==Keys::Q || e->KeyCode==Keys::E){
+				 rotx=Eyex-Focusx;
+				 roty=Eyey-Focusy;
+				 rotz=Eyez-Focusz;
+				 if(e->KeyCode==Keys::Q){
+					Eyex =rotx+Focusx;
+					Eyey =roty*cos(PI*rot_angle/180)-rotz*sin(PI*rot_angle/180)+Focusy;
+					Eyez =roty*sin(PI*rot_angle/180)+rotz*cos(PI*rot_angle/180)+Focusz;
+				 }else{
+					Eyex =rotx+Focusx;
+					Eyey =roty*cos(-PI*rot_angle/180)-rotz*sin(-PI*rot_angle/180)+Focusy;
+					Eyez =roty*sin(-PI*rot_angle/180)+rotz*cos(-PI*rot_angle/180)+Focusz;
+				 }
+				 key=true;
+			 }
+			 if(e->KeyCode==Keys::NumPad4){
+				 Model2.setTrans(Model2.getTrans().x-5,Model2.getTrans().y,Model2.getTrans().z);
+				 this->test_lb2->Text="pressed";
+			 }
+			 
+		 }
+private: System::Void showPan_KeyUp(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
+			 key=false;
+			 
 		 }
 private: System::Void showPan_MouseWheel(System::Object^  sender, System::Windows::Forms::MouseEventArgs^  e) {
 			 //this->test_lb->Text=System::Convert::ToString(e->Delta);
@@ -408,17 +482,70 @@ private: System::Void showPan_MouseWheel(System::Object^  sender, System::Window
 				 Eyez-=(ViewFar-ViewNear)/1000;
 			 else
 				 Eyez+=(ViewFar-ViewNear)/1000;
-			 draw_mesh(Model);
+			 //draw_mesh(Model);
 		 }
 
 private: System::Void Form1_FormClosed(System::Object^  sender, System::Windows::Forms::FormClosedEventArgs^  e) {
-			 Model.kill();
+			 Model1.kill();
+			 Model2.kill();
 		 }
-private: System::Void Form1_KeyDown(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
-		 }
+
 
 private: System::Void showPan_Click(System::Object^  sender, System::EventArgs^  e) {
 			 this->showPan->Focus();
+		 }
+private: System::Void Form1_Resize(System::Object^  sender, System::EventArgs^  e) {
+			 this->showPan->Width=(int)(this->Width-40);
+			 this->showPan->Height=(int)(this->Height-150);
+			 glViewport(0,0,this->showPan->Width,this->showPan->Height);
+		 }
+private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
+			 if(Model1_load&&Model2_load){
+				wglMakeCurrent(m_hDC, m_hRC);
+				glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+				//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
+				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
+				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
+				glMatrixMode(GL_MODELVIEW);
+				draw_mesh(Model1);
+				draw_mesh(Model2);
+				glFlush();
+				SwapBuffers( m_hDC );  
+			 }else if(Model1_load){
+				wglMakeCurrent(m_hDC, m_hRC);
+				glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+				//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
+				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
+				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
+				glMatrixMode(GL_MODELVIEW);
+				draw_mesh(Model1);
+				glFlush();
+				SwapBuffers( m_hDC );  
+			 }else if(Model2_load){
+				wglMakeCurrent(m_hDC, m_hRC);
+				glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+				//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
+				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
+				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
+				glMatrixMode(GL_MODELVIEW);
+				draw_mesh(Model2);
+				glFlush();
+				SwapBuffers( m_hDC );  
+			}
+			 char out[255];
+			 sprintf_s(out,255,"%lf %lf %lf",(double)Eyex,(double)Eyey,(double)Eyez);
+			 this->test_lb->Text=gcnew String(out);
+			 sprintf_s(out,255,"%lf %lf %lf",(double)Focusx,(double)Focusy,(double)Focusz);
+			 this->test_lb2->Text=gcnew String(out);
 		 }
 };
 }
