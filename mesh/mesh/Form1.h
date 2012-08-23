@@ -37,10 +37,11 @@ namespace viewer {
 	GLdouble Focusx=0,Focusy=0,Focusz=0,movex,movey,movez,rotx,roty,rotz;
 	GLdouble ViewLeft=-100,ViewRight=100,ViewBottom=-100,ViewTop=100,ViewNear=-1000,ViewFar=1000;
 	//GLdouble ViewLeft=-2,ViewRight=2,ViewBottom=-2,ViewTop=2,ViewNear=-20,ViewFar=20;
+	GLuint tex1,tex2,tex3,tex4;
 	double Mousex,Mousey;
 	double rot_angle=5,move_step=5;
-	mesh Model1,Model2;
-	bool Model1_load=false,Model2_load=false;
+	mesh Model1,Model2,Model3,Model4;
+	bool Model1_load=false,Model2_load=false,Model3_load=false,Model4_load=false;
 	public ref class Form1 : public System::Windows::Forms::Form
 	{
 	public:
@@ -135,7 +136,7 @@ namespace viewer {
 			FILE *fp;
 			fopen_s(&fp,&file[0],"r");
 			fgets(buff,255,fp);
-			int vcount=0,fcount=0;
+			int vcount=0,fcount=0,vtcount=0;
 			while(fgets(buff,255,fp)!= NULL){
 				if(sscanf_s(buff,"v %f %f %f",&t1,&t2,&t3)){
 					vcount++;
@@ -147,11 +148,12 @@ namespace viewer {
 			fclose(fp);
 			model->setVnum(vcount);
 			model->setFnum(fcount);
-			
+			model->setVTnum(vcount);
 			fopen_s(&fp,&file[0],"r");
 			fgets(buff,255,fp);
 			vcount=0;
 			fcount=0;
+			vtcount=0;
 			while(fgets(buff,255,fp)!= NULL){
 				if(sscanf_s(buff,"v %f %f %f",&t1,&t2,&t3)){
 					model->setV(vcount,t1,t2,t3);
@@ -175,6 +177,10 @@ namespace viewer {
 					
 					//this->test_lb2->Text=gcnew String(s1.c_str());
 				}
+				if(sscanf_s(buff,"vt %f %f %f",&t1,&t2,&t3)){
+					model->setVT(vtcount,t1,t2);
+					vtcount++;
+				}
 			}
 			fclose(fp);
 			//sprintf_s(out,255,"%f %f %f",model->getV(0).x,model->getV(0).y,model->getV(0).z);
@@ -182,7 +188,32 @@ namespace viewer {
 			model->setVN();
 			model->setCenter();
 			model->initPose();
+			//sprintf_s(out,255,"%f %f",model->getVT(0).x,model->getVT(0).y);
+			//this->button1->Text=gcnew String(out);
 			
+		}
+		void read_tex(String^ filename,mesh* model){
+			string file,s;
+			string format=".obj";
+			char o1[255],o2[255];
+			String2char(filename,file);
+			int pos=0;
+			pos=file.find(format,pos);
+			file[pos]='.';
+			file[pos+1]='m';
+			file[pos+2]='t';
+			file[pos+3]='l';
+			FILE *fp;
+			char buff[255];
+			fopen_s(&fp,&file[0],"r");
+			while(fgets(buff,255,fp)!=NULL){
+				//MessageBox::Show(gcnew String(buff),"reading",MessageBoxButtons::OK, MessageBoxIcon::Exclamation );
+				sscanf_s(buff,"%s %s",o1,255,o2,255);
+				if(o1[0]=='m'&&o1[1]=='a'&&o1[2]=='p'&&o1[3]=='_'&&o1[4]=='K'&&o1[5]=='d'){
+					model->setTexPic(o2);
+				}
+			}
+			fclose(fp);
 		}
 		void draw_mesh(mesh model){
 			//glMatrixMode(GL_MODELVIEW);
@@ -238,6 +269,8 @@ private: System::ComponentModel::IContainer^  components;
 	private: System::Windows::Forms::Button^  button1;
 	private: System::Windows::Forms::Label^  test_lb2;
 	private: System::Windows::Forms::Timer^  timer1;
+private: System::Windows::Forms::Button^  button2;
+private: System::Windows::Forms::Button^  button3;
 		 static HGLRC m_hRC;
 	
 
@@ -255,6 +288,8 @@ private: System::ComponentModel::IContainer^  components;
 			this->button1 = (gcnew System::Windows::Forms::Button());
 			this->test_lb2 = (gcnew System::Windows::Forms::Label());
 			this->timer1 = (gcnew System::Windows::Forms::Timer(this->components));
+			this->button2 = (gcnew System::Windows::Forms::Button());
+			this->button3 = (gcnew System::Windows::Forms::Button());
 			this->SuspendLayout();
 			// 
 			// showPan
@@ -318,12 +353,34 @@ private: System::ComponentModel::IContainer^  components;
 			this->timer1->Interval = 17;
 			this->timer1->Tick += gcnew System::EventHandler(this, &Form1::timer1_Tick);
 			// 
+			// button2
+			// 
+			this->button2->Location = System::Drawing::Point(12, 435);
+			this->button2->Name = L"button2";
+			this->button2->Size = System::Drawing::Size(51, 22);
+			this->button2->TabIndex = 5;
+			this->button2->Text = L"button2";
+			this->button2->UseVisualStyleBackColor = true;
+			this->button2->Click += gcnew System::EventHandler(this, &Form1::button2_Click);
+			// 
+			// button3
+			// 
+			this->button3->Location = System::Drawing::Point(83, 435);
+			this->button3->Name = L"button3";
+			this->button3->Size = System::Drawing::Size(59, 22);
+			this->button3->TabIndex = 6;
+			this->button3->Text = L"button3";
+			this->button3->UseVisualStyleBackColor = true;
+			this->button3->Click += gcnew System::EventHandler(this, &Form1::button3_Click);
+			// 
 			// Form1
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 12);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->AutoScroll = true;
 			this->ClientSize = System::Drawing::Size(394, 477);
+			this->Controls->Add(this->button3);
+			this->Controls->Add(this->button2);
 			this->Controls->Add(this->test_lb2);
 			this->Controls->Add(this->button1);
 			this->Controls->Add(this->test_lb);
@@ -346,10 +403,19 @@ private: System::ComponentModel::IContainer^  components;
 			 if(openfiledialog1->ShowDialog()==System::Windows::Forms::DialogResult::OK){
 				 Eyex=0;Eyey=0;Eyez=100;
 				 read_obj(openfiledialog1->FileName,&Model1);
-				 Model1.setTrans(-Model1.getCenter().x,-Model1.getCenter().y,-Model1.getCenter().z);
+				 //Model1.setTrans(-Model1.getCenter().x,-Model1.getCenter().y,-Model1.getCenter().z);
 				 this->showPan->Focus();
 				 Model1_load=true;
-				 //draw_mesh(Model);
+				 if(Model1.texture){
+					 read_tex(openfiledialog1->FileName,&Model1);
+					 IplImage *Im1;
+					 Im1=cvLoadImage(Model1.getTexPic().c_str(),1);
+					
+					 cvShowImage("Show",Im1);
+					 cvWaitKey(0);
+					 cvDestroyWindow("Show");
+					 cvReleaseImage(&Im1);
+				 }
 			 }
 			 
 		 }
@@ -488,6 +554,8 @@ private: System::Void showPan_MouseWheel(System::Object^  sender, System::Window
 private: System::Void Form1_FormClosed(System::Object^  sender, System::Windows::Forms::FormClosedEventArgs^  e) {
 			 Model1.kill();
 			 Model2.kill();
+			 Model3.kill();
+			 Model4.kill();
 		 }
 
 
@@ -500,7 +568,7 @@ private: System::Void Form1_Resize(System::Object^  sender, System::EventArgs^  
 			 glViewport(0,0,this->showPan->Width,this->showPan->Height);
 		 }
 private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e) {
-			 if(Model1_load&&Model2_load){
+			 if(Model1_load||Model2_load||Model3_load||Model4_load){
 				wglMakeCurrent(m_hDC, m_hRC);
 				glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
@@ -510,42 +578,44 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
 				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
 				glMatrixMode(GL_MODELVIEW);
-				draw_mesh(Model1);
-				draw_mesh(Model2);
+				if(Model1_load)
+					draw_mesh(Model1);
+				if(Model2_load)
+					draw_mesh(Model2);
+				if(Model3_load)
+					draw_mesh(Model3);
+				if(Model4_load)
+					draw_mesh(Model4);
 				glFlush();
 				SwapBuffers( m_hDC );  
-			 }else if(Model1_load){
-				wglMakeCurrent(m_hDC, m_hRC);
-				glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
-				glMatrixMode(GL_PROJECTION);
-				glLoadIdentity();
-				//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
-				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
-				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
-				glMatrixMode(GL_MODELVIEW);
-				draw_mesh(Model1);
-				glFlush();
-				SwapBuffers( m_hDC );  
-			 }else if(Model2_load){
-				wglMakeCurrent(m_hDC, m_hRC);
-				glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
-				glMatrixMode(GL_PROJECTION);
-				glLoadIdentity();
-				//glOrtho(ViewLeft,ViewRight,ViewBottom,ViewTop,ViewNear,ViewFar);
-				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
-				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
-				glMatrixMode(GL_MODELVIEW);
-				draw_mesh(Model2);
-				glFlush();
-				SwapBuffers( m_hDC );  
-			}
+			 }
 			 char out[255];
 			 sprintf_s(out,255,"%lf %lf %lf",(double)Eyex,(double)Eyey,(double)Eyez);
 			 this->test_lb->Text=gcnew String(out);
 			 sprintf_s(out,255,"%lf %lf %lf",(double)Focusx,(double)Focusy,(double)Focusz);
 			 this->test_lb2->Text=gcnew String(out);
+		 }
+private: System::Void button2_Click(System::Object^  sender, System::EventArgs^  e) {
+			OpenFileDialog^ openfiledialog1= gcnew OpenFileDialog;
+			openfiledialog1->Filter="obj files (*.obj)|*.obj";
+			if(openfiledialog1->ShowDialog()==System::Windows::Forms::DialogResult::OK){
+				read_obj(openfiledialog1->FileName,&Model3);
+				//Model2.setTrans(-Model1.getCenter().x,-Model1.getCenter().y,-Model1.getCenter().z);
+				this->showPan->Focus();
+				Model3_load=true;
+			 //draw_mesh(Model);
+			}
+		 }
+private: System::Void button3_Click(System::Object^  sender, System::EventArgs^  e) {
+			OpenFileDialog^ openfiledialog1= gcnew OpenFileDialog;
+			openfiledialog1->Filter="obj files (*.obj)|*.obj";
+			if(openfiledialog1->ShowDialog()==System::Windows::Forms::DialogResult::OK){
+				read_obj(openfiledialog1->FileName,&Model4);
+				//Model2.setTrans(-Model1.getCenter().x,-Model1.getCenter().y,-Model1.getCenter().z);
+				this->showPan->Focus();
+				Model4_load=true;
+			 //draw_mesh(Model);
+			}
 		 }
 };
 }

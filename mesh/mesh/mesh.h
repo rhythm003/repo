@@ -1,4 +1,7 @@
 #include <math.h> 
+#include <cv.h>
+#include <highgui.h>
+#include <string>
 
 struct vertex{
 	float x,y,z;
@@ -16,8 +19,12 @@ private: vertex Center;
 private: vertex Translate;
 private: vertex Rotate;
 private: float rot_angle;
-
+public: bool texture;
+private: vertex* VT;
+private: GLuint texName;
+private: std::string texPic;
 public: void setVnum(int num){
+		texture=false;
 		vnum=num;
 		free(V);
 		V=(vertex*)malloc(sizeof(vertex)*num);
@@ -26,6 +33,11 @@ public: void setFnum(int num){
 		fnum=num;
 		free(F);
 		F=(face*)malloc(sizeof(face)*num);
+	}
+public: void setVTnum(int num){
+		texture=true;
+		free(VT);
+		VT=(vertex*)malloc(sizeof(vertex)*num);
 	}
 public: void setV(int num,float x,float y,float z){
 		V[num].x=x;
@@ -36,6 +48,11 @@ public: void setF(int num,int f1,int f2,int f3){
 		F[num].f1=f1;
 		F[num].f2=f2;
 		F[num].f3=f3;
+	}
+public: void setVT(int num,float x,float y){
+		VT[num].x=x;
+		VT[num].y=y;
+		
 	}
 public: int getVnum(void){
 		return vnum;
@@ -48,6 +65,9 @@ public: vertex getV(int num){
 	}
 public: face getF(int num){
 		return F[num];
+	}
+public: vertex getVT(int num){
+		return VT[num];
 	}
 public: vertex getN(int num){
 		vertex out;
@@ -187,5 +207,11 @@ public: void copy(mesh in){
 			setCenter();
 			setTrans(in.getTrans().x,in.getTrans().y,in.getTrans().z);
 			setRotate(in.getRotate_angle(),in.getRotate().x,in.getRotate().y,in.getRotate().z);
+		}
+public: void setTexPic(char* path){
+			texPic.assign(path);
+		}
+public: std::string getTexPic(void){
+			return texPic;
 		}
 };
