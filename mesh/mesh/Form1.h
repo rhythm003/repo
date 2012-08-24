@@ -38,6 +38,7 @@ namespace viewer {
 	GLdouble ViewLeft=-100,ViewRight=100,ViewBottom=-100,ViewTop=100,ViewNear=-1000,ViewFar=1000;
 	//GLdouble ViewLeft=-2,ViewRight=2,ViewBottom=-2,ViewTop=2,ViewNear=-20,ViewFar=20;
 	GLuint tex1,tex2,tex3,tex4;
+	GLubyte *img1,*img2,*img3,*img4;
 	double Mousex,Mousey;
 	double rot_angle=5,move_step=5;
 	mesh Model1,Model2,Model3,Model4;
@@ -132,7 +133,7 @@ namespace viewer {
 			char buff[255],out[255],o1[30],o2[30],o3[30];
 			string s1,s2,s3;
 			string sym ("/");
-			float t1,t2,t3;
+			float t1,t2,t3,n1,n2,n3;
 			FILE *fp;
 			fopen_s(&fp,&file[0],"r");
 			fgets(buff,255,fp);
@@ -144,11 +145,17 @@ namespace viewer {
 				if(sscanf_s(buff,"f %f %f %f",&t1,&t2,&t3)){
 					fcount++;
 				}
+				if(sscanf_s(buff,"vt %f %f %f",&t1,&t2,&t3)){
+					vtcount++;
+				}
 			}
 			fclose(fp);
 			model->setVnum(vcount);
 			model->setFnum(fcount);
-			model->setVTnum(vcount);
+			if(vtcount>0){
+				model->setVTnum(vtcount);
+				model->setTFnum(fcount);
+			}
 			fopen_s(&fp,&file[0],"r");
 			fgets(buff,255,fp);
 			vcount=0;
@@ -164,10 +171,11 @@ namespace viewer {
 					s2= string (o2);
 					s3= string (o3);
 					if(string::npos != s1.find(sym)){
-						sscanf_s(s1.c_str(),"%f/%f",&t1,&t1);
-						sscanf_s(s2.c_str(),"%f/%f",&t2,&t2);
-						sscanf_s(s3.c_str(),"%f/%f",&t3,&t3);
+						sscanf_s(s1.c_str(),"%f/%f",&t1,&n1);
+						sscanf_s(s2.c_str(),"%f/%f",&t2,&n2);
+						sscanf_s(s3.c_str(),"%f/%f",&t3,&n3);
 						model->setF(fcount,(int)t1,(int)t2,(int)t3);
+						model->setTF(fcount,(int)n1,(int)n2,(int)n3);
 						fcount++;
 					}else{
 						sscanf_s(buff,"f %f %f %f\n",&t1,&t2,&t3);
@@ -192,10 +200,11 @@ namespace viewer {
 			//this->button1->Text=gcnew String(out);
 			
 		}
-		void read_tex(String^ filename,mesh* model){
+		void read_tex(String^ filename,mesh* model,GLuint *tex,GLubyte *img){
 			string file,s;
 			string format=".obj";
 			char o1[255],o2[255];
+			
 			String2char(filename,file);
 			int pos=0;
 			pos=file.find(format,pos);
@@ -214,6 +223,34 @@ namespace viewer {
 				}
 			}
 			fclose(fp);
+			IplImage *image;
+			image=cvLoadImage(model->getTexPic().c_str(),1);
+					
+			//cvShowImage("Show",image);
+			//cvWaitKey(0);
+			//cvDestroyWindow("Show");
+			
+			img=(GLubyte*)malloc(sizeof(GLubyte)*image->width*image->height*4);
+			for(int i=0;i<image->height;i++){
+				for(int j=0;j<image->width;j++){
+					img[i*image->width+4*j]=(GLubyte)cvGet2D(image,i,j).val[2];
+					img[i*image->width+4*j+1]=(GLubyte)cvGet2D(image,i,j).val[1];
+					img[i*image->width+4*j+2]=(GLubyte)cvGet2D(image,i,j).val[0];
+					img[i*image->width+4*j+3]=(GLubyte) 255;
+				}
+			}
+			
+			//sprintf_s(o1,255,"%u %u %u",img[0][0][0],img[0][0][1],img[0][0][2]);
+			//MessageBox::Show(this,gcnew String(o1),"img",MessageBoxButtons::OK);
+			glGenTextures(1,tex);
+			glBindTexture(GL_TEXTURE_2D,*tex);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+			
+			glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,image->width,image->height,0,GL_BGR_EXT,GL_UNSIGNED_BYTE,image->imageData);
+			cvReleaseImage(&image);
 		}
 		void draw_mesh(mesh model){
 			//glMatrixMode(GL_MODELVIEW);
@@ -221,13 +258,19 @@ namespace viewer {
 			glTranslatef(model.getTrans().x,model.getTrans().y,model.getTrans().z);
 			glRotatef(model.getRotate_angle(),model.getRotate().x,model.getRotate().y,model.getRotate().z);
 			glBegin(GL_TRIANGLES);
-			glColor3f(1.0, 1.0, 1.0);
+			//glColor3f(1.0, 1.0, 1.0);
 			for(int i=0;i<model.getFnum();i++){
 				//glNormal3f(model.getN(i).x,model.getN(i).y,model.getN(i).z);
+				if(model.texture)
+					glTexCoord2f(model.getVT(model.getTF(i).f1-1).x,model.getVT(model.getTF(i).f1-1).y);	
 				glNormal3f(model.getVN(model.getF(i).f1-1).x,model.getVN(model.getF(i).f1-1).y,model.getVN(model.getF(i).f1-1).z);
 				glVertex3f(model.getV(model.getF(i).f1-1).x,model.getV(model.getF(i).f1-1).y,model.getV(model.getF(i).f1-1).z);
+				if(model.texture)
+					glTexCoord2f(model.getVT(model.getTF(i).f2-1).x,model.getVT(model.getTF(i).f2-1).y);	
 				glNormal3f(model.getVN(model.getF(i).f2-1).x,model.getVN(model.getF(i).f2-1).y,model.getVN(model.getF(i).f2-1).z);
 				glVertex3f(model.getV(model.getF(i).f2-1).x,model.getV(model.getF(i).f2-1).y,model.getV(model.getF(i).f2-1).z);
+				if(model.texture)
+					glTexCoord2f(model.getVT(model.getTF(i).f3-1).x,model.getVT(model.getTF(i).f3-1).y);	
 				glNormal3f(model.getVN(model.getF(i).f3-1).x,model.getVN(model.getF(i).f3-1).y,model.getVN(model.getF(i).f3-1).z);
 				glVertex3f(model.getV(model.getF(i).f3-1).x,model.getV(model.getF(i).f3-1).y,model.getV(model.getF(i).f3-1).z);
 			}
@@ -236,6 +279,12 @@ namespace viewer {
 			//glFlush();
 			//SwapBuffers( m_hDC );  
 			
+		}
+		void load_tex(GLuint num){
+			
+			glEnable(GL_TEXTURE_2D);
+			glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+			glBindTexture(GL_TEXTURE_2D,num);
 		}
 	protected:
 		/// <summary>
@@ -407,14 +456,14 @@ private: System::Windows::Forms::Button^  button3;
 				 this->showPan->Focus();
 				 Model1_load=true;
 				 if(Model1.texture){
-					 read_tex(openfiledialog1->FileName,&Model1);
-					 IplImage *Im1;
+					 read_tex(openfiledialog1->FileName,&Model1,&tex1,img1);
+					 /*IplImage *Im1;
 					 Im1=cvLoadImage(Model1.getTexPic().c_str(),1);
 					
 					 cvShowImage("Show",Im1);
 					 cvWaitKey(0);
 					 cvDestroyWindow("Show");
-					 cvReleaseImage(&Im1);
+					 cvReleaseImage(&Im1);*/
 				 }
 			 }
 			 
@@ -578,8 +627,13 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 				gluPerspective(45,(double)(this->showPan->Width/this->showPan->Height),0.1,ViewFar);
 				gluLookAt(Eyex,Eyey,Eyez,Focusx,Focusy,Focusz,0,1,0);
 				glMatrixMode(GL_MODELVIEW);
-				if(Model1_load)
+				if(Model1_load){
+					if(Model1.texture)
+						load_tex(tex1);
 					draw_mesh(Model1);
+					if(Model1.texture)
+						glDisable(GL_TEXTURE_2D);
+				}
 				if(Model2_load)
 					draw_mesh(Model2);
 				if(Model3_load)
@@ -587,6 +641,7 @@ private: System::Void timer1_Tick(System::Object^  sender, System::EventArgs^  e
 				if(Model4_load)
 					draw_mesh(Model4);
 				glFlush();
+				glDisable(GL_TEXTURE_2D);
 				SwapBuffers( m_hDC );  
 			 }
 			 char out[255];
